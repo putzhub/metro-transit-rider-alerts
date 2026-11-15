@@ -54,6 +54,9 @@ class TripAdvisor(discord.Client):
         response_json = json.loads(r.text).pop()
         # Use all routes channel since it'll have local too
         last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
+        if last_message == None:
+            #Avoid any errors if polling for the last message failed
+            return
         last_timestamp = int(last_message.created_at.timestamp())
         last_post = last_message.content
 
