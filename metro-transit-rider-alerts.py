@@ -40,11 +40,11 @@ class TripAdvisor(discord.Client):
 
             return msg
 
-    async def get_latest_message_timestamp(self, channel):
-        async for message in self.get_channel(channel).history(limit=1):
-            return int(message.created_at.timestamp())
-        return None
-
+    async def get_latest_message(self, channel):
+            async for message in self.get_channel(channel).history(limit=1):
+                return message
+            return None
+    
     async def check_transit_advisories(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
 
@@ -53,7 +53,9 @@ class TripAdvisor(discord.Client):
         # Responses are sorted with most recently updated last.
         response_json = json.loads(r.text).pop()
         # Use all routes channel since it'll have local too
-        last_timestamp = await self.get_latest_message_timestamp(CHANNEL_ID_ALL_ROUTES)
+        last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
+        last_timestamp = int(last_message.created_at.timestamp())
+        last_post = last_message.content
 
         if response_json["last_modified_timestamp"] > last_timestamp:
             # 🚨️ TRANSIT ALERT: IT'S GOING DOWN 🚨️
@@ -62,6 +64,9 @@ class TripAdvisor(discord.Client):
 
             # Post the news
             msg_all_routes = self.create_message(response_json, local_route)
+            if last_post == msg_all_routes:
+                #Avoid spam if a recently posted message was update but stayed the same.
+                return
             await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
             if local_route:
                 msg_local_routes = self.create_message(response_json)
