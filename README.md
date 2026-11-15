@@ -20,7 +20,6 @@ From there the script will pull from the Rider Alerts API every 60 seconds to ch
 This project was created for a neighborhood discord server in the Twin Cities. It uses the [discord.py library](https://discordpy.readthedocs.io) to integrate with the Discord API. The requests library is used to fetch updates from the [Metro Transit - Rider Alerts API](https://svc.metrotransit.org/swagger/index.html?urls.primaryName=Alerts+API+-+v1). 
 
 ## Optimizations
-*(optional)*
 
 On our discord server this project is just one cog using the [Cogs class](https://discordpy.readthedocs.io/en/stable/ext/commands/cogs.html?highlight=cogs). Since that project is hosted on a private forgejo instance I pulled this out to run as a standalone instance, but there are features that it could probably both rely on and contribute to as part of the library, such as use of the database.
 
