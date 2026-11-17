@@ -19,6 +19,9 @@ NEIGHBORHOOD_ROUTES = [
 ]
 
 class TripAdvisor(discord.Client):
+    # More efficient use of our requests
+    last_message = None
+
     def __init__(self, *args, **kwargs):
         '''TripAdvisor pulls in MetroTransit and Minneapolis Snow Emergencies to post.'''
         super().__init__(*args, **kwargs)       
@@ -52,21 +55,20 @@ class TripAdvisor(discord.Client):
         r = requests.get("https://svc.metrotransit.org/alerts/all")
         # Responses are sorted with most recently updated last.
         response_json = json.loads(r.text).pop()
-        # Use all routes channel since it'll have local too
-        last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
-        if last_message == None:
-            #Avoid any errors if polling for the last message failed
-            return
-        last_timestamp = int(last_message.created_at.timestamp())
-        last_post = last_message.content
+        # Recheck if request for last_message failed or hasn't been initialized
+        if self.last_message is None:
+            self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
+        last_timestamp = int(self.last_message.created_at.timestamp())
+        last_post = self.last_message.content
 
         if response_json["last_modified_timestamp"] > last_timestamp:
-            # 🚨️ TRANSIT ALERT: IT'S GOING DOWN 🚨️
+            # 🚨 TRANSIT ALERT: IT'S GOING DOWN 🚨
             route_id = response_json["informed_entity"][0]["route_id"]
             local_route = route_id in NEIGHBORHOOD_ROUTES
 
             # Post the news
             msg_all_routes = self.create_message(response_json, local_route)
+            # Use all routes channel since local posts are derived from it
             if last_post == msg_all_routes:
                 #Avoid spam if a recently posted message was update but stayed the same.
                 return
@@ -74,6 +76,8 @@ class TripAdvisor(discord.Client):
             if local_route:
                 msg_local_routes = self.create_message(response_json)
                 await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
+            # Update last_message once we're actually done posting
+            self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
 
     # Discord bot code setup
     async def setup_hook(self) -> None:

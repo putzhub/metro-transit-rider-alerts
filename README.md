@@ -23,8 +23,10 @@ This project was created for a neighborhood discord server in the Twin Cities. I
 
 On our discord server this project is just one cog using the [Cogs class](https://discordpy.readthedocs.io/en/stable/ext/commands/cogs.html?highlight=cogs). Since that project is hosted on a private forgejo instance I pulled this out to run as a standalone instance, but there are features that it could probably both rely on and contribute to as part of the library, such as use of the database.
 
-Initially I used a JSON file to cache the request, but then discovered how to use the library features that allow for reading the most recent message in a server which is great because now it could be running with multiple instances and still only update once instead of spamming the chat. It also helped make it less error prone.
+Initially I used a JSON file to cache the request, but then discovered how to use the library features that allow for reading the most recent message in a server which is great because now it could be running with multiple instances and still only update once instead of spamming the chat (not that it would be recommended). It also helped make it less error prone.
 
 ## Lessons Learned:
 
 This project was a great opportunity to learn more about a locally relevant API and how to use the discord.py library. I also learned how to use Python async/await syntax at the same time I've been studying Javascript's version of it.
+
+During testing I also realized that the bot would have issues staying online after a day or so. I learned that I needed to be more efficient with any rate limit sensitive operations. For example, it didn't make sense to check previous messages on a channel again if the route alerts hadn't actually been updated since the last timestamp of the most recent post (which only changes with new alerts).
