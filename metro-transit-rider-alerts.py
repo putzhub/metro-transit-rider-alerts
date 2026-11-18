@@ -65,14 +65,16 @@ class TripAdvisor(discord.Client):
 
         for alert in alerts:
             # 🚨 TRANSIT ALERT: IT'S GOING DOWN 🚨
-            route_id = alert["informed_entity"][0]["route_id"]
-            local_route = route_id in NEIGHBORHOOD_ROUTES
-            msg_all_routes = self.create_message(alert, local_route)
+            route_filter = lambda r: r["route_id"] in NEIGHBORHOOD_ROUTES
+            local_routes = [r for r in filter(route_filter, alert["informed_entity"])]
+            is_local = len(local_routes) > 0 
+            msg_all_routes = self.create_message(alert, is_local)
+            print(local_routes)
 
             # Use all routes channel since local posts are derived from it
             if last_post != msg_all_routes:
                 self.last_message = await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
-                if local_route:
+                if is_local:
                     msg_local_routes = self.create_message(alert)
                     await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
 
