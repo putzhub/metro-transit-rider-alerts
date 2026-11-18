@@ -12,6 +12,8 @@ if not hasattr(os.environ, "DISCORD_TOKEN"):
 CHANNEL_ID_ALL_ROUTES = int(os.environ["CHANNEL_ID_ALL_ROUTES"])
 CHANNEL_ID_LOCAL_ROUTES = int(os.environ["CHANNEL_ID_LOCAL_ROUTES"])
 
+# See doc: https://svc.metrotransit.org/swagger/index.html
+TRANSIT_API_ENDPOINT = "https://svc.metrotransit.org/alerts/all"
 #List of routes in the neighborhood
 NEIGHBORHOOD_ROUTES = [
     #Route IDs go here
@@ -29,52 +31,52 @@ class TripAdvisor(discord.Client):
     # --- MetroTransit check ---
     def create_message(self, response_json, highlight_local=False):
         '''Helper to pluck most recent update from the API response and keep code cleaner'''
+        RIDER_ALERTS_URL = "https://www.metrotransit.org/rider-alerts"
         
-        #Avoid throwing an error if response_json is empty
-        if response_json != {}:
-            #Pick out desired API data
-            header_text = response_json["header_text"]["translation"][0]["text"]
-            url = response_json["url"]["translation"][0]["text"]
-            #Put the message together
-            msg = f"{header_text} - [More details on MetroTransit - see Alerts tab here.]({url})"
-            if highlight_local:
-                #Point out if it's a route with at least one stop in Uptown or Whittier
-                msg = f"*[NEIGHBORHOOD ROUTE]*\n**{msg}**"
+        #Pick out desired API data
+        header_text = response_json["header_text"]["translation"][0]["text"]
+        #Default to the main rider alerts page if there isn't a URL provided
+        url = response_json.get("url", RIDER_ALERTS_URL)
+        url = url.get("translation")[0].get("text") if url != RIDER_ALERTS_URL else url
+        #Put the message together
+        msg = f"{header_text} - [More details on MetroTransit - see Alerts tab here.]({url})"
+        if highlight_local:
+            msg = f"*[NEIGHBORHOOD ROUTE]*\n**{msg}**"
 
-            return msg
+        return msg
 
     async def get_latest_message(self, channel):
-            async for message in self.get_channel(channel).history(limit=1):
-                return message
-            return None
-    
+        return [message async for message in self.get_channel(channel).history(limit=1)][0]
+
     async def check_transit_advisories(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
 
-        # See doc: https://svc.metrotransit.org/swagger/index.html
-        r = requests.get("https://svc.metrotransit.org/alerts/all")
-        # Responses are sorted with most recently updated last.
-        response_json = json.loads(r.text).pop()
-        # Recheck if request for last_message failed or hasn't been initialized
+        # Init for self.last_message since __init__() can't do async
         if self.last_message is None:
             self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
         last_timestamp = int(self.last_message.created_at.timestamp())
         last_post = self.last_message.content
 
-        if response_json["last_modified_timestamp"] > last_timestamp:
+        request = requests.get(TRANSIT_API_ENDPOINT)
+        response = json.loads(request.text)
+        # Responses are sorted with most recently updated last.
+        response_filter = lambda res: res["last_modified_timestamp"] > last_timestamp
+        alerts = [a for a in filter(response_filter, response)]
+
+        for alert in alerts:
             # 🚨 TRANSIT ALERT: IT'S GOING DOWN 🚨
-            route_id = response_json["informed_entity"][0]["route_id"]
+            route_id = alert["informed_entity"][0]["route_id"]
             local_route = route_id in NEIGHBORHOOD_ROUTES
 
             # Post the news
-            msg_all_routes = self.create_message(response_json, local_route)
+            msg_all_routes = self.create_message(alert, local_route)
             # Use all routes channel since local posts are derived from it
             if last_post == msg_all_routes:
                 #Avoid spam if a recently posted message was update but stayed the same.
                 return
             await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
             if local_route:
-                msg_local_routes = self.create_message(response_json)
+                msg_local_routes = self.create_message(alert)
                 await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
             # Update last_message once we're actually done posting
             self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
