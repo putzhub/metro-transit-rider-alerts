@@ -57,12 +57,13 @@ class TripAdvisor(discord.Client):
 
     @property
     def last_message(self):
-        return self.message_history[-1]
+        return self.message_history[0]
     
     @last_message.setter
     def last_message(self, value):
-        self.message_history.append(value)
-        del self.message_history[0]
+        #Discord returns messages with most recent first
+        self.message_history.insert(0, value)
+        self.message_history.pop()
 
     async def check_rider_alerts(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
