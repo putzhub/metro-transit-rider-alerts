@@ -10,6 +10,7 @@ if not hasattr(os.environ, "DISCORD_TOKEN"):
 
 CHANNEL_ID_ALL_ROUTES = int(os.environ["CHANNEL_ID_ALL_ROUTES"])
 CHANNEL_ID_LOCAL_ROUTES = int(os.environ["CHANNEL_ID_LOCAL_ROUTES"])
+MESSAGE_HISTORY_SIZE=70
 
 # See doc: https://svc.metrotransit.org/swagger/index.html
 TRANSIT_API_ENDPOINT = "https://svc.metrotransit.org/alerts/all"
@@ -22,7 +23,8 @@ NEIGHBORHOOD_ROUTES = [
 class TripAdvisor(discord.Client):
     def __init__(self, *args, **kwargs):
         '''TripAdvisor pulls in MetroTransit and Minneapolis Snow Emergencies to post.'''
-        super().__init__(*args, **kwargs)       
+        super().__init__(*args, **kwargs)
+        self.message_history = [] 
 
     # --- MetroTransit check ---
     def create_message(self, response_json, highlight_local=False):
@@ -41,11 +43,26 @@ class TripAdvisor(discord.Client):
 
         return msg
 
-    async def get_latest_message(self, channel):
+    async def get_message_history(self, channel):
         channel = self.get_channel(channel)
         # Tell the type checker that this is a messageable channel
         assert isinstance(channel, discord.abc.Messageable)
-        return [message async for message in channel.history(limit=1)][0]
+        return [message async for message in channel.history(limit=MESSAGE_HISTORY_SIZE)]
+
+    def verify_unique_message(self, msg):
+        for message in self.message_history:
+            if message.content == msg:
+                return False
+        return True
+
+    @property
+    def last_message(self):
+        return self.message_history[-1]
+    
+    @last_message.setter
+    def last_message(self, value):
+        self.message_history.append(value)
+        del self.message_history[0]
 
     async def check_rider_alerts(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
@@ -66,7 +83,7 @@ class TripAdvisor(discord.Client):
             msg_all_routes = self.create_message(alert, is_local)
 
             # Use all routes channel since local posts are derived from it
-            if self.last_message.content != msg_all_routes:
+            if self.verify_unique_message(msg_all_routes):
                 self.last_message = await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
                 if is_local:
                     msg_local_routes = self.create_message(alert)
@@ -75,7 +92,7 @@ class TripAdvisor(discord.Client):
     async def __init_async__(self):
         '''Initialize some instance variables that require async'''
         self.metro_transit_session = aiohttp.ClientSession()
-        self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
+        self.message_history = await self.get_message_history(CHANNEL_ID_ALL_ROUTES)
 
     # Discord bot code setup
     async def setup_hook(self) -> None:
