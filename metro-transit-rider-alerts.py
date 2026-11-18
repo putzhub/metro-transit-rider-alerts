@@ -1,6 +1,5 @@
 import os
-import json
-import requests
+import aiohttp
 import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
@@ -21,9 +20,6 @@ NEIGHBORHOOD_ROUTES = [
 ]
 
 class TripAdvisor(discord.Client):
-    # More efficient use of our requests
-    last_message = None
-
     def __init__(self, *args, **kwargs):
         '''TripAdvisor pulls in MetroTransit and Minneapolis Snow Emergencies to post.'''
         super().__init__(*args, **kwargs)       
@@ -54,14 +50,11 @@ class TripAdvisor(discord.Client):
     async def check_rider_alerts(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
 
-        # Init for self.last_message since __init__() can't do async
-        if self.last_message is None:
-            self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
         last_timestamp = int(self.last_message.created_at.timestamp())
 
         # Call API and pick out the alerts that are new since last post
-        request = requests.get(TRANSIT_API_ENDPOINT)
-        response = json.loads(request.text)
+        async with self.metro_transit_session.get(TRANSIT_API_ENDPOINT) as response:
+            response = await response.json()
         response_filter = lambda res: res["last_modified_timestamp"] > last_timestamp
         alerts = [a for a in filter(response_filter, response)]
 
@@ -79,6 +72,11 @@ class TripAdvisor(discord.Client):
                     msg_local_routes = self.create_message(alert)
                     await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
 
+    async def __init_async__(self):
+        '''Initialize some instance variables that require async'''
+        self.metro_transit_session = aiohttp.ClientSession()
+        self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
+
     # Discord bot code setup
     async def setup_hook(self) -> None:
         # start the task to run in the background
@@ -87,6 +85,10 @@ class TripAdvisor(discord.Client):
     async def on_ready(self):
         print(f'Logged in as {self.user}')
         print('------')
+
+    async def close(self):
+        await self.metro_transit_session.close()
+        await super().close()
 
     # Main loop
     @tasks.loop(seconds=60)
@@ -97,6 +99,8 @@ class TripAdvisor(discord.Client):
     @check_transit_updates.before_loop
     async def before_my_task(self):
         await self.wait_until_ready()  # wait until the bot logs in
+        # Wait until we can actually call self.get_latest_message()
+        await self.__init_async__()
 
     async def post_update(self, channel, msg):
         '''Send a message to the channel'''
