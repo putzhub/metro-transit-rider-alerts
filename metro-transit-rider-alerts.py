@@ -99,7 +99,7 @@ class TripAdvisor(discord.Client):
         await self.wait_until_ready()  # wait until the bot logs in
 
     async def post_update(self, channel, msg):
-        '''Send a message to the #trip-advisory channel'''
+        '''Send a message to the channel'''
         
         channel = self.get_channel(channel)
         # Tell the type checker that this is a messageable channel
