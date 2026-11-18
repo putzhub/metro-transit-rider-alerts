@@ -23,10 +23,10 @@ This project was created for a neighborhood discord server in the Twin Cities. I
 
 On our discord server this project is just one cog using the [Cogs class](https://discordpy.readthedocs.io/en/stable/ext/commands/cogs.html?highlight=cogs). Since that project is hosted on a private forgejo instance I pulled this out to run as a standalone instance, but there are features that it could probably both rely on and contribute to as part of the library, such as use of the database.
 
-Initially I used a JSON file to cache the request, but then discovered how to use the library features that allow for reading the most recent message in a server which is great because now it could be running with multiple instances and still only update once instead of spamming the chat (not that it would be recommended). It also helped make it less error prone.
+A specific optimization that could be made is to use aiohttp instead of requests. Running as a standalone bot for just one API it probably doesn't make a huge difference in practice, but if there were other cogs to consider or multiple APIs to use then it would make sense to move to an async approach, which I may yet do if I have time someday.
 
 ## Lessons Learned:
 
-This project was a great opportunity to learn more about a locally relevant API and how to use the discord.py library. I also learned how to use Python async/await syntax at the same time I've been studying Javascript's version of it.
+This project was a great opportunity to learn more about a locally relevant API and how to use the discord.py library. I also learned how to use Python async/await syntax at the same time I've been studying Javascript's version of it. This project was a great opportunity to learn more about python asyncio and coroutines.
 
-During testing I also realized that the bot would have issues staying online after a day or so. I learned that I needed to be more efficient with any rate limit sensitive operations. For example, it didn't make sense to check previous messages on a channel again if the route alerts hadn't actually been updated since the last timestamp of the most recent post (which only changes with new alerts).
+During testing I also realized that the bot would have issues staying online after a day or so. I learned that I needed to be more efficient with any rate limit sensitive operations. For example, it didn't make sense to check previous messages on a channel again if the route alerts hadn't actually been updated since the last timestamp of the most recent post (which only changes with new alerts). Plus it was more efficient to just grab the message right after posting.
