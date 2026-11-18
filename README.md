@@ -23,7 +23,7 @@ This project was created for a neighborhood discord server in the Twin Cities. I
 
 On our discord server this project is just one cog using the [Cogs class](https://discordpy.readthedocs.io/en/stable/ext/commands/cogs.html?highlight=cogs). Since that project is hosted on a private forgejo instance I pulled this out to run as a standalone instance, but there are features that it could probably both rely on and contribute to as part of the library, such as use of the database.
 
-A specific optimization that could be made is to use aiohttp instead of requests. Running as a standalone bot for just one API it probably doesn't make a huge difference in practice, but if there were other cogs to consider or multiple APIs to use then it would make sense to move to an async approach, which I may yet do if I have time someday.
+A specific optimization that I also made was to use aiohttp instead of requests. Running as a standalone bot for just one API it probably doesn't make a huge difference in practice, but if there were other cogs to consider or multiple APIs to use then it made sense to move to an async approach.
 
 ## Lessons Learned:
 
