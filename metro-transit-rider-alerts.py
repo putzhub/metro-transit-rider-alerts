@@ -69,7 +69,6 @@ class TripAdvisor(discord.Client):
             local_routes = [r for r in filter(route_filter, alert["informed_entity"])]
             is_local = len(local_routes) > 0 
             msg_all_routes = self.create_message(alert, is_local)
-            print(local_routes)
 
             # Use all routes channel since local posts are derived from it
             if last_post != msg_all_routes:
