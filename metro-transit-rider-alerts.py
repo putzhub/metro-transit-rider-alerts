@@ -59,7 +59,7 @@ class TripAdvisor(discord.Client):
 
         request = requests.get(TRANSIT_API_ENDPOINT)
         response = json.loads(request.text)
-        # Responses are sorted with most recently updated last.
+        # Pick out the alerts that are new since last post
         response_filter = lambda res: res["last_modified_timestamp"] > last_timestamp
         alerts = [a for a in filter(response_filter, response)]
 
@@ -67,19 +67,19 @@ class TripAdvisor(discord.Client):
             # 🚨 TRANSIT ALERT: IT'S GOING DOWN 🚨
             route_id = alert["informed_entity"][0]["route_id"]
             local_route = route_id in NEIGHBORHOOD_ROUTES
-
-            # Post the news
             msg_all_routes = self.create_message(alert, local_route)
+
             # Use all routes channel since local posts are derived from it
             if last_post == msg_all_routes:
-                #Avoid spam if a recently posted message was update but stayed the same.
+                #Avoid spam if a recently posted route was updated but message stayed the same.
                 return
             await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
             if local_route:
                 msg_local_routes = self.create_message(alert)
                 await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
-            # Update last_message once we're actually done posting
-            self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
+            
+        # Update last_message after finishing the batch & only if it didn't return earlier
+        self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
 
     # Discord bot code setup
     async def setup_hook(self) -> None:
