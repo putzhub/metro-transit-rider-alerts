@@ -51,7 +51,7 @@ class TripAdvisor(discord.Client):
 
     def verify_unique_message(self, msg):
         for message in self.message_history:
-            if message.content == msg:
+            if msg in message.content:
                 return False
         return True
 
