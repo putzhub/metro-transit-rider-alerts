@@ -48,7 +48,7 @@ class TripAdvisor(discord.Client):
     async def get_latest_message(self, channel):
         return [message async for message in self.get_channel(channel).history(limit=1)][0]
 
-    async def check_transit_advisories(self):
+    async def check_rider_alerts(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
 
         # Init for self.last_message since __init__() can't do async
@@ -73,13 +73,10 @@ class TripAdvisor(discord.Client):
             if last_post == msg_all_routes:
                 #Avoid spam if a recently posted route was updated but message stayed the same.
                 return
-            await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
+            self.last_message = await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
             if local_route:
                 msg_local_routes = self.create_message(alert)
                 await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
-            
-        # Update last_message after finishing the batch & only if it didn't return earlier
-        self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
 
     # Discord bot code setup
     async def setup_hook(self) -> None:
@@ -93,7 +90,7 @@ class TripAdvisor(discord.Client):
     # Main loop
     @tasks.loop(seconds=60)
     async def check_transit_updates(self):
-        await self.check_transit_advisories()
+        await self.check_rider_alerts()
         #TODO: await self.check_snow_emergencies()
 
     @check_transit_updates.before_loop
@@ -106,7 +103,7 @@ class TripAdvisor(discord.Client):
         channel = self.get_channel(channel)
         # Tell the type checker that this is a messageable channel
         assert isinstance(channel, discord.abc.Messageable)
-        await channel.send(msg)
+        return await channel.send(msg)
 
 if __name__ == "__main__":
     client = TripAdvisor(intents=discord.Intents.default())
