@@ -46,7 +46,10 @@ class TripAdvisor(discord.Client):
         return msg
 
     async def get_latest_message(self, channel):
-        return [message async for message in self.get_channel(channel).history(limit=1)][0]
+        channel = self.get_channel(channel)
+        # Tell the type checker that this is a messageable channel
+        assert isinstance(channel, discord.abc.Messageable)
+        return [message async for message in channel.history(limit=1)][0]
 
     async def check_rider_alerts(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
@@ -55,11 +58,10 @@ class TripAdvisor(discord.Client):
         if self.last_message is None:
             self.last_message = await self.get_latest_message(CHANNEL_ID_ALL_ROUTES)
         last_timestamp = int(self.last_message.created_at.timestamp())
-        last_post = self.last_message.content
 
+        # Call API and pick out the alerts that are new since last post
         request = requests.get(TRANSIT_API_ENDPOINT)
         response = json.loads(request.text)
-        # Pick out the alerts that are new since last post
         response_filter = lambda res: res["last_modified_timestamp"] > last_timestamp
         alerts = [a for a in filter(response_filter, response)]
 
@@ -71,7 +73,7 @@ class TripAdvisor(discord.Client):
             msg_all_routes = self.create_message(alert, is_local)
 
             # Use all routes channel since local posts are derived from it
-            if last_post != msg_all_routes:
+            if self.last_message.content != msg_all_routes:
                 self.last_message = await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
                 if is_local:
                     msg_local_routes = self.create_message(alert)
