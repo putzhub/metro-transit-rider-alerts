@@ -43,11 +43,11 @@ class TripAdvisor(discord.Client):
 
         return msg
 
-    async def get_message_history(self, channel):
-        channel = self.get_channel(channel)
+    async def get_message_history(self, channel_id, l=MESSAGE_HISTORY_SIZE):
+        channel = self.get_channel(channel_id)
         # Tell the type checker that this is a messageable channel
         assert isinstance(channel, discord.abc.Messageable)
-        return [message async for message in channel.history(limit=MESSAGE_HISTORY_SIZE)]
+        return [message async for message in channel.history(limit=l)]
 
     def verify_unique_message(self, msg):
         for message in self.message_history:
