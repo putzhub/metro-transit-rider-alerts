@@ -70,13 +70,11 @@ class TripAdvisor(discord.Client):
             msg_all_routes = self.create_message(alert, local_route)
 
             # Use all routes channel since local posts are derived from it
-            if last_post == msg_all_routes:
-                #Avoid spam if a recently posted route was updated but message stayed the same.
-                return
-            self.last_message = await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
-            if local_route:
-                msg_local_routes = self.create_message(alert)
-                await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
+            if last_post != msg_all_routes:
+                self.last_message = await self.post_update(CHANNEL_ID_ALL_ROUTES, msg_all_routes)
+                if local_route:
+                    msg_local_routes = self.create_message(alert)
+                    await self.post_update(CHANNEL_ID_LOCAL_ROUTES, msg_local_routes)
 
     # Discord bot code setup
     async def setup_hook(self) -> None:
