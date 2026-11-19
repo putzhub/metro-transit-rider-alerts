@@ -50,6 +50,8 @@ class TripAdvisor(discord.Client):
         return [message async for message in channel.history(limit=l)]
 
     def verify_unique_message(self, msg):
+        if len(self.message_history) == 0:
+            return True
         for message in self.message_history:
             if msg in message.content:
                 return False
@@ -63,12 +65,16 @@ class TripAdvisor(discord.Client):
     def last_message(self, value):
         #Discord returns messages with most recent first
         self.message_history.insert(0, value)
-        self.message_history.pop()
+        if len(self.message_history) > MESSAGE_HISTORY_SIZE:
+            self.message_history.pop()
 
     async def check_rider_alerts(self):
         '''Call MetroTransit API and post if there's a new advisory.'''
 
-        last_timestamp = int(self.last_message.created_at.timestamp())
+        last_timestamp = 0
+        if len(self.message_history) > 0:
+            #Avoid access error if this is being used on a new channel
+            last_timestamp = int(self.last_message.created_at.timestamp())
 
         # Call API and pick out the alerts that are new since last post
         async with self.metro_transit_session.get(TRANSIT_API_ENDPOINT) as response:
