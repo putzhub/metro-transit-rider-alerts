@@ -87,14 +87,19 @@ class TripAdvisor(discord.Client):
         '''Call MetroTransit API and post if there's a new advisory.'''
 
         last_timestamp = 0
+        #TODO: Replace using timestamp with the ID eventually once I figure out a safe way
+        #Prefer timestamp over ID if there's no ID
+        #last_id = 1000000
         if len(self.message_history) > 0:
             #Avoid access error if this is being used on a new channel
             last_timestamp = int(self.last_message.created_at.timestamp())
+            #last_id = int(self.last_message.embeds[0].footer.text.split(":")[1])
 
         # Call API and pick out the alerts that are new since last post
         async with self.metro_transit_session.get(TRANSIT_API_ENDPOINT) as response:
             response = await response.json()
-        response_filter = lambda res: res["last_modified_timestamp"] > last_timestamp
+        response_filter = lambda res: res["last_modified_timestamp"] > last_timestamp 
+                            #or int(res["id"]) > last_id
         alerts = [a for a in filter(response_filter, response)]
 
         for alert in alerts:
