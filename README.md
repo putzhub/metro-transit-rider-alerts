@@ -1,7 +1,7 @@
 # Metro Transit Rider Alert Bot
 This project is a discord bot that pulls from the Metro Transit API and post updates to a given channel. There is also the ability to distinguish between all routes and local routes if desired.
 
-![Metro Transit Rider Alerts Screenshot](https://portfolio.putz.space/images/metrotransitrideralerts.webp)
+![Metro Transit Rider Alerts Screenshot](https://repository-images.githubusercontent.com/1458269103/ba512fc2-3396-465f-bda0-e6fa6bab4535)
 
 ## How To Run:
 
