@@ -33,15 +33,19 @@ class TripAdvisor(discord.Client):
         
         #Pick out desired API data
         header_text = response_json["header_text"]["translation"][0]["text"]
+        routes = set([r["route_id"] for r in response_json["informed_entity"]])
         #Default to the main rider alerts page if there isn't a URL provided
         url = response_json.get("url", RIDER_ALERTS_URL)
         url = url.get("translation")[0].get("text") if url != RIDER_ALERTS_URL else url
         #Put the message together
-        msg = f"{header_text} - [More details on MetroTransit - see Alerts tab here.]({url})"
+        title = f"Routes: {', '.join(routes)}"
         if highlight_local:
-            msg = f"*[NEIGHBORHOOD ROUTE]*\n**{msg}**"
+            #Point out if it's a route with at least one stop in Uptown or Whittier
+            title = f"{title} - [NEIGHBORHOOD ROUTE]"
 
-        return msg
+        embed = discord.Embed(title=title, description=header_text, url=url, color=discord.Color.red())
+
+        return embed
 
     async def get_message_history(self, channel_id, l=MESSAGE_HISTORY_SIZE):
         channel = self.get_channel(channel_id)
@@ -53,7 +57,7 @@ class TripAdvisor(discord.Client):
         if len(self.message_history) == 0:
             return True
         for message in self.message_history:
-            if msg in message.content:
+            if msg.description in message.content:
                 return False
         return True
 
@@ -132,7 +136,7 @@ class TripAdvisor(discord.Client):
         channel = self.get_channel(channel)
         # Tell the type checker that this is a messageable channel
         assert isinstance(channel, discord.abc.Messageable)
-        return await channel.send(msg)
+        return await channel.send(embed=msg)
 
 if __name__ == "__main__":
     client = TripAdvisor(intents=discord.Intents.default())
