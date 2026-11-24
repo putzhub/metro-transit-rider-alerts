@@ -57,8 +57,13 @@ class TripAdvisor(discord.Client):
         if len(self.message_history) == 0:
             return True
         for message in self.message_history:
+            #Compare embed content to message history of plain text (backwards compatiblity)
             if msg.description in message.content:
                 return False
+            #Compare embed content to messages using embeds
+            for embed in message.embeds:
+                if msg.description in embed.description:
+                    return False
         return True
 
     @property
