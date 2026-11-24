@@ -42,9 +42,15 @@ class TripAdvisor(discord.Client):
         if highlight_local:
             #Point out if it's a route with at least one stop in Uptown or Whittier
             title = f"{title} - [NEIGHBORHOOD ROUTE]"
+        #Check if there's an image
+        img = response_json.get("image")
+        thumbnail = img["localized_image"][0]["url"] if img else None
 
+        #Prep the embed
         embed = discord.Embed(title=title, description=header_text, url=url, color=discord.Color.red())
-
+        embed.set_footer(text=f"Alert ID:{response_json["id"]}")
+        if thumbnail is not None:
+            embed.set_thumbnail(url=thumbnail)
         return embed
 
     async def get_message_history(self, channel_id, l=MESSAGE_HISTORY_SIZE):
